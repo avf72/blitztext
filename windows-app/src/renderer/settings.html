@@ -108,7 +108,7 @@
       </div>
       <div>
         <label for="hotkey">Hotkey</label>
-        <input id="hotkey" type="text" placeholder="CommandOrControl+Shift+Space" />
+        <input id="hotkey" type="text" placeholder="Alt+Space" />
       </div>
     </div>
     <div class="hint">Hotkey-Format z.B. CommandOrControl+Shift+Space oder Alt+Space</div>
@@ -172,7 +172,7 @@
         await blitz.saveSettings({
           workflow: $("workflow").value,
           language: $("language").value.trim() || "de",
-          hotkey: $("hotkey").value.trim() || "CommandOrControl+Shift+Space",
+          hotkey: $("hotkey").value.trim() || "Alt+Space",
           tone: $("tone").value,
           emojiDensity: $("emojiDensity").value,
           customTerms: $("customTerms").value
