@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import ch.avf.blitztext.databinding.ActivityMainBinding
@@ -36,9 +37,7 @@ class MainActivity : AppCompatActivity() {
                 )
             )
         }
-        b.btnAccessibility.setOnClickListener {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        }
+        b.btnAccessibility.setOnClickListener { showAccessibilityHelp() }
         b.btnStart.setOnClickListener {
             Prefs.overlayEnabled = true
             startOverlay()
@@ -102,6 +101,36 @@ class MainActivity : AppCompatActivity() {
             appendLine("${mark(isAccessibilityEnabled())}  Bedienungshilfe (Texteinfuegen)")
             append("${mark(mic)}  Mikrofon")
         }
+    }
+
+    private fun showAccessibilityHelp() {
+        val msg = """
+            So aktivierst du die Bedienungshilfe (noetig zum Einfuegen des Textes):
+
+            1. Auf der naechsten Seite: "Installierte Apps" (oder "Heruntergeladene Apps") -> Blitztext -> Schalter EIN.
+
+            2. Falls "Eingeschraenkte Einstellung" erscheint:
+               a) Tippe unten auf "App-Info (Drei-Punkte-Menue)".
+               b) Dort oben rechts auf die drei Punkte tippen.
+               c) "Eingeschraenkte Einstellungen zulassen" waehlen, mit PIN/Fingerabdruck bestaetigen.
+               d) Danach zurueck und Schritt 1 wiederholen.
+        """.trimIndent()
+        AlertDialog.Builder(this)
+            .setTitle("Bedienungshilfe aktivieren")
+            .setMessage(msg)
+            .setPositiveButton("Bedienungshilfe oeffnen") { _, _ ->
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
+            .setNeutralButton("App-Info (Drei-Punkte-Menue)") { _, _ ->
+                startActivity(
+                    Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:$packageName")
+                    )
+                )
+            }
+            .setNegativeButton("Schliessen", null)
+            .show()
     }
 
     private fun isAccessibilityEnabled(): Boolean {
