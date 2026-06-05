@@ -1,19 +1,26 @@
 package ch.avf.blitztext
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import ch.avf.blitztext.databinding.ActivitySettingsBinding
+import kotlinx.coroutines.launch
 
 class SettingsActivity : AppCompatActivity() {
+
+    private lateinit var b: ActivitySettingsBinding
 
     private val workflowValues =
         listOf("transcription", "textImprover", "dampfAblassen", "emojiText")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val b = ActivitySettingsBinding.inflate(layoutInflater)
+        b = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(b.root)
 
         b.spinnerWorkflow.adapter = ArrayAdapter.createFromResource(
@@ -29,6 +36,50 @@ class SettingsActivity : AppCompatActivity() {
             Prefs.language = b.editLanguage.text.toString().trim().ifEmpty { "de" }
             Toast.makeText(this, "Gespeichert", Toast.LENGTH_SHORT).show()
             finish()
+        }
+
+        b.versionText.text =
+            "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+        b.btnUpdate.setOnClickListener { checkAndUpdate() }
+    }
+
+    private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+
+    private fun checkAndUpdate() {
+        b.btnUpdate.isEnabled = false
+        lifecycleScope.launch {
+            try {
+                toast("Suche nach Update ...")
+                val remote = UpdateManager.latestVersionCode()
+                if (remote == null) {
+                    toast("Update-Pruefung fehlgeschlagen")
+                    return@launch
+                }
+                if (remote <= BuildConfig.VERSION_CODE) {
+                    toast("Du hast bereits die neueste Version")
+                    return@launch
+                }
+                // Berechtigung "Apps installieren" sicherstellen
+                if (!packageManager.canRequestPackageInstalls()) {
+                    toast("Bitte 'Apps installieren' fuer Blitztext erlauben, dann erneut tippen")
+                    startActivity(
+                        Intent(
+                            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                            Uri.parse("package:$packageName")
+                        )
+                    )
+                    return@launch
+                }
+                toast("Lade Update ...")
+                val apk = UpdateManager.downloadApk(this@SettingsActivity)
+                if (apk == null) {
+                    toast("Download fehlgeschlagen")
+                    return@launch
+                }
+                UpdateManager.install(this@SettingsActivity, apk)
+            } finally {
+                b.btnUpdate.isEnabled = true
+            }
         }
     }
 }

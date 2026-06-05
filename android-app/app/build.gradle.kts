@@ -11,8 +11,9 @@ android {
         applicationId = "ch.avf.blitztext"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        // In der CI aus der Run-Nummer gesetzt, damit "Update verfuegbar" erkannt wird.
+        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = System.getenv("VERSION_NAME") ?: "0.1.0"
 
         // Werte aus gradle/CI ueberschreibbar; Defaults zeigen aufs Live-Backend.
         buildConfigField("String", "BACKEND_URL", "\"https://blitztext-web.vercel.app\"")
