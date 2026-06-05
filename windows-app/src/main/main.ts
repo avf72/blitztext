@@ -1,6 +1,7 @@
 // App-Einstieg: Tray-only-App, Hotkey, IPC-Verdrahtung.
 
 import { app, ipcMain, session, shell } from "electron";
+import { log } from "./log";
 import { createTray, rebuildMenu } from "./tray";
 import { checkUpdate, downloadAndRunInstaller } from "./update";
 import { OPENAI_BILLING } from "./constants";
@@ -25,6 +26,7 @@ if (!app.requestSingleInstanceLock()) {
 app.on("second-instance", () => openSettings());
 
 app.whenReady().then(() => {
+  log(`App gestartet — Version ${app.getVersion()}`);
   // Mikrofon-Berechtigung im Renderer erlauben
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
     callback(permission === "media");
@@ -34,10 +36,12 @@ app.whenReady().then(() => {
   createTray();
 
   if (!registerHotkey()) {
+    log("Hotkey konnte nicht registriert werden — oeffne Einstellungen");
     openSettings();
   }
 
   if (!hasApiKey()) {
+    log("Kein API Key — oeffne Einstellungen");
     openSettings();
   }
 

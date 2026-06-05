@@ -20,7 +20,7 @@ export interface Settings {
 
 const DEFAULTS: Settings = {
   workflow: "transcription",
-  hotkey: "CommandOrControl+Space",
+  hotkey: "F9",
   language: "de",
   tone: "neutral",
   emojiDensity: "mittel",
