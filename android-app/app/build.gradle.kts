@@ -37,6 +37,20 @@ android {
         jvmTarget = "17"
     }
 
+    signingConfigs {
+        // Fester Schluessel (von der CI erzeugt + im Repo), damit Updates per
+        // Drueber-Install funktionieren (gleiche Signatur ueber alle Builds).
+        getByName("debug") {
+            val ks = file("blitztext.jks")
+            if (ks.exists()) {
+                storeFile = ks
+                storePassword = "blitztext"
+                keyAlias = "blitztext"
+                keyPassword = "blitztext"
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
