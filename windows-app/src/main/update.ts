@@ -14,12 +14,19 @@ function localVersionNum(): number {
   return parseInt(app.getVersion().split(".")[2] ?? "0", 10) || 0;
 }
 
+function fetchWithTimeout(url: string, ms: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 export async function checkUpdate(): Promise<CheckResult> {
   try {
-    const res = await fetch(WIN_VERSION_URL, { signal: AbortSignal.timeout(15_000) });
+    const res = await fetchWithTimeout(WIN_VERSION_URL, 10_000);
     if (!res.ok) return { status: "error" };
-    const remote = parseInt((await res.text()).trim(), 10);
-    if (!Number.isFinite(remote)) return { status: "error" };
+    const text = await res.text();
+    const remote = parseInt(text.trim(), 10);
+    if (!Number.isFinite(remote) || isNaN(remote)) return { status: "error" };
     return remote > localVersionNum() ? { status: "available", remote } : { status: "uptodate" };
   } catch {
     return { status: "error" };

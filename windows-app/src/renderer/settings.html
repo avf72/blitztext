@@ -143,7 +143,6 @@
     <button id="billing" style="background: #16a34a">OpenAI-Guthaben &amp; Kosten</button>
 
     <label>App</label>
-    <div class="hint" id="version"></div>
     <button id="update" style="background: #52525b">Nach Updates suchen</button>
     <div class="hint" id="updateStatus"></div>
 
@@ -190,7 +189,7 @@
       $("billing").addEventListener("click", () => blitz.openBilling());
 
       blitz.appVersion().then((v) => {
-        $("version").textContent = "Version " + v;
+        $("update").textContent = "Nach Updates suchen  —  Version " + v;
       });
 
       $("update").addEventListener("click", async () => {
@@ -204,7 +203,7 @@
           $("updateStatus").textContent = "Du hast bereits die neueste Version.";
           return;
         }
-        $("updateStatus").textContent = "Lade Update und starte Installation ...";
+        $("updateStatus").textContent = "Lade Update herunter und startet Installation ...";
         const res = await blitz.installUpdate();
         if (!res.ok) {
           $("updateStatus").textContent = res.error || "Update fehlgeschlagen.";

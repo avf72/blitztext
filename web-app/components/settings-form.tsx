@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { saveSettingsAction, type SettingsState } from "@/app/settings/actions";
 import { WORKFLOW_LABELS, type Settings, type WorkflowType } from "@/lib/types";
+import { ShortcutInput } from "./shortcut-input";
 
 const WORKFLOWS = Object.keys(WORKFLOW_LABELS) as WorkflowType[];
 const fieldCls =
@@ -58,6 +59,8 @@ export function SettingsForm({ initial }: { initial: Settings }) {
         <label htmlFor="context" className={labelCls}>Kontext (optional)</label>
         <textarea id="context" name="context" defaultValue={initial.context} placeholder="z.B. geschaeftliche E-Mails auf Deutsch" className={`${fieldCls} min-h-20 resize-y`} />
       </div>
+
+      <ShortcutInput />
 
       {state.error && <p className="text-sm text-red-400">{state.error}</p>}
       {state.message && <p className="text-sm text-green-400">{state.message}</p>}
