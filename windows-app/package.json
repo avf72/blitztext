@@ -1,0 +1,37 @@
+{
+  "name": "blitztext-windows",
+  "version": "0.1.0",
+  "description": "Blitztext fuer Windows - Sprache rein, Text raus. Hotkey druecken, sprechen, Text wird in die aktive App eingefuegt.",
+  "author": "Andreas von Foerster",
+  "license": "MIT",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "tsc && node scripts/copy-assets.mjs",
+    "start": "npm run build && electron .",
+    "dev": "npm run build && electron . --dev",
+    "test": "npm run build && node scripts/test-logic.mjs",
+    "test:boot": "npm run build && node scripts/smoke.mjs boot",
+    "test:mic": "npm run build && node scripts/smoke.mjs mic",
+    "dist": "npm run build && electron-builder --win"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.2"
+  },
+  "build": {
+    "appId": "ch.avf.blitztext",
+    "productName": "Blitztext",
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "assets/**/*"],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

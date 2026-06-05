@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: transparent;
+        overflow: hidden;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      #pill {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 44px;
+        margin: 10px;
+        padding: 0 16px;
+        border-radius: 22px;
+        background: rgba(20, 20, 24, 0.92);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+        color: #fff;
+      }
+      #dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #3b82f6;
+        flex: none;
+      }
+      #pill.recording #dot {
+        background: #ef4444;
+        animation: pulse 1s infinite;
+      }
+      #pill.processing #dot {
+        background: #f59e0b;
+      }
+      #pill.done #dot {
+        background: #22c55e;
+      }
+      #pill.error #dot {
+        background: #ef4444;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+      }
+      #label {
+        font-size: 13px;
+        white-space: nowrap;
+        flex: 1;
+      }
+      #wave {
+        flex: none;
+        opacity: 0.9;
+      }
+      #pill:not(.recording) #wave {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="pill">
+      <span id="dot"></span>
+      <span id="label">Bereit</span>
+      <canvas id="wave" width="120" height="24"></canvas>
+    </div>
+    <script>
+      let mediaRecorder, chunks = [], stream, startTime, audioCtx, analyser, rafId;
+      const pill = document.getElementById("pill");
+      const label = document.getElementById("label");
+      const wave = document.getElementById("wave");
+      const wctx = wave.getContext("2d");
+
+      blitz.onStatus((s) => {
+        label.textContent = s.text;
+        pill.className = s.state;
+      });
+
+      blitz.onRecordingStart(async () => {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          chunks = [];
+          mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) chunks.push(e.data);
+          };
+          mediaRecorder.onstop = handleStop;
+          startTime = performance.now();
+          mediaRecorder.start();
+          startMeter(stream);
+        } catch (err) {
+          label.textContent = "Mikrofon nicht verfuegbar";
+          blitz.sendAudio(new ArrayBuffer(0), 0);
+        }
+      });
+
+      blitz.onRecordingStop(() => {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+      });
+
+      async function handleStop() {
+        stopMeter();
+        const duration = (performance.now() - startTime) / 1000;
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const buf = await blob.arrayBuffer();
+        if (stream) stream.getTracks().forEach((t) => t.stop());
+        blitz.sendAudio(buf, duration);
+      }
+
+      function startMeter(stream) {
+        audioCtx = new AudioContext();
+        const src = audioCtx.createMediaStreamSource(stream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        src.connect(analyser);
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        const draw = () => {
+          rafId = requestAnimationFrame(draw);
+          analyser.getByteFrequencyData(data);
+          wctx.clearRect(0, 0, wave.width, wave.height);
+          const bars = 24;
+          const step = Math.floor(data.length / bars);
+          for (let i = 0; i < bars; i++) {
+            const v = data[i * step] / 255;
+            const h = Math.max(2, v * wave.height);
+            wctx.fillStyle = "#fff";
+            wctx.fillRect(i * 5, (wave.height - h) / 2, 3, h);
+          }
+        };
+        draw();
+      }
+
+      function stopMeter() {
+        if (rafId) cancelAnimationFrame(rafId);
+        if (audioCtx) audioCtx.close();
+      }
+    </script>
+  </body>
+</html>

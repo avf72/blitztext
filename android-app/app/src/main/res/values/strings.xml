@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Blitztext</string>
+    <string name="accessibility_label">Blitztext Texteinfuegen</string>
+    <string name="accessibility_description">Fuegt diktierten Text in das aktuell fokussierte Eingabefeld ein. Wird nur nach einer Aufnahme verwendet.</string>
+
+    <string-array name="workflow_labels">
+        <item>Blitztext — Sprache rein. Text raus.</item>
+        <item>Blitztext+ — Geschrieben sprechen.</item>
+        <item>Blitztext \$%&amp;! — Frust rein. Entspannt raus.</item>
+        <item>Blitztext :) — Text rein. Emojis dazu.</item>
+    </string-array>
+</resources>

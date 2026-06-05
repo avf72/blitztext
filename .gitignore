@@ -30,3 +30,14 @@ Secrets.swift
 
 # Tooling
 node_modules/
+
+# Build-Artefakte (Electron-Installer, Android-Builds, Gradle)
+release/
+.gradle/
+local.properties
+*.apk
+
+# Playwright-Schnappschuesse / Streudateien
+.playwright-mcp/
+login-mobile.png
+supabase-urls-check.md

@@ -1,0 +1,7 @@
+<resources>
+    <color name="accent">#3B82F6</color>
+    <color name="recording">#EF4444</color>
+    <color name="processing">#F59E0B</color>
+    <color name="background">#0B0B0F</color>
+    <color name="ic_launcher_background">#3B82F6</color>
+</resources>

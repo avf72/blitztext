@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    />
+    <title>Blitztext Einstellungen</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        font-size: 14px;
+        background: #f7f7f8;
+        color: #18181b;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 4px;
+      }
+      p.sub {
+        margin: 0 0 18px;
+        color: #71717a;
+        font-size: 12px;
+      }
+      label {
+        display: block;
+        margin: 14px 0 4px;
+        font-weight: 600;
+        font-size: 12px;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 8px 10px;
+        border: 1px solid #d4d4d8;
+        border-radius: 8px;
+        font: inherit;
+        background: #fff;
+        color: #18181b;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 54px;
+      }
+      .hint {
+        color: #71717a;
+        font-size: 11px;
+        margin-top: 3px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+      }
+      .row > div {
+        flex: 1;
+      }
+      button {
+        margin-top: 22px;
+        width: 100%;
+        padding: 10px;
+        border: 0;
+        border-radius: 8px;
+        background: #2563eb;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #1d4ed8;
+      }
+      #saved {
+        text-align: center;
+        color: #16a34a;
+        font-size: 12px;
+        margin-top: 10px;
+        height: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Blitztext</h1>
+    <p class="sub">Sprache rein. Text raus. Hotkey druecken, sprechen, Text wird eingefuegt.</p>
+
+    <label for="apikey">OpenAI API Key</label>
+    <input id="apikey" type="password" placeholder="sk-..." autocomplete="off" />
+    <div class="hint" id="keyhint"></div>
+
+    <label for="workflow">Modus</label>
+    <select id="workflow">
+      <option value="transcription">Blitztext — Sprache rein. Text raus.</option>
+      <option value="textImprover">Blitztext+ — Geschrieben sprechen.</option>
+      <option value="dampfAblassen">Blitztext $%&! — Frust rein. Entspannt raus.</option>
+      <option value="emojiText">Blitztext :) — Text rein. Emojis dazu.</option>
+    </select>
+
+    <div class="row">
+      <div>
+        <label for="language">Sprache</label>
+        <input id="language" type="text" placeholder="de" />
+      </div>
+      <div>
+        <label for="hotkey">Hotkey</label>
+        <input id="hotkey" type="text" placeholder="CommandOrControl+Shift+Space" />
+      </div>
+    </div>
+    <div class="hint">Hotkey-Format z.B. CommandOrControl+Shift+Space oder Alt+Space</div>
+
+    <label for="tone">Ton (fuer Blitztext+)</label>
+    <select id="tone">
+      <option value="formal">Formell</option>
+      <option value="neutral">Neutral</option>
+      <option value="casual">Locker</option>
+    </select>
+
+    <label for="emojiDensity">Emoji-Menge (fuer Blitztext :)</label>
+    <select id="emojiDensity">
+      <option value="wenig">Wenig</option>
+      <option value="mittel">Mittel</option>
+      <option value="viel">Viel</option>
+    </select>
+
+    <label for="customTerms">Eigennamen / Fachbegriffe (Komma-getrennt)</label>
+    <input id="customTerms" type="text" placeholder="Infomaniak, Vercel, Supabase" />
+
+    <label for="context">Kontext (optional)</label>
+    <textarea id="context" placeholder="z.B. geschaeftliche E-Mails auf Deutsch"></textarea>
+
+    <button id="save">Speichern</button>
+    <div id="saved"></div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      async function load() {
+        const { settings, hasKey, maskedKey } = await blitz.getSettings();
+        $("workflow").value = settings.workflow;
+        $("language").value = settings.language;
+        $("hotkey").value = settings.hotkey;
+        $("tone").value = settings.tone;
+        $("emojiDensity").value = settings.emojiDensity;
+        $("customTerms").value = settings.customTerms.join(", ");
+        $("context").value = settings.context;
+        $("keyhint").textContent = hasKey
+          ? "Gespeichert: " + maskedKey + " (leer lassen, um zu behalten)"
+          : "Noch kein Key hinterlegt.";
+      }
+
+      $("save").addEventListener("click", async () => {
+        const key = $("apikey").value.trim();
+        if (key !== "") {
+          await blitz.setApiKey(key);
+          $("apikey").value = "";
+        }
+        await blitz.saveSettings({
+          workflow: $("workflow").value,
+          language: $("language").value.trim() || "de",
+          hotkey: $("hotkey").value.trim() || "CommandOrControl+Shift+Space",
+          tone: $("tone").value,
+          emojiDensity: $("emojiDensity").value,
+          customTerms: $("customTerms").value
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          context: $("context").value.trim(),
+        });
+        $("saved").textContent = "Gespeichert.";
+        setTimeout(() => ($("saved").textContent = ""), 2000);
+        load();
+      });
+
+      load();
+    </script>
+  </body>
+</html>
