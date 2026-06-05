@@ -49,6 +49,7 @@ class OverlayService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        isRunning = true
         startAsForeground()
         wm = getSystemService(WindowManager::class.java)
         binding = OverlayButtonBinding.inflate(LayoutInflater.from(this))
@@ -199,6 +200,7 @@ class OverlayService : Service() {
     }
 
     override fun onDestroy() {
+        isRunning = false
         runCatching { recorder?.stop() }
         runCatching { if (::binding.isInitialized) wm.removeView(binding.root) }
         scope.cancel()
@@ -207,5 +209,8 @@ class OverlayService : Service() {
 
     companion object {
         const val ACTION_STOP = "ch.avf.blitztext.STOP_OVERLAY"
+
+        @Volatile
+        var isRunning = false
     }
 }

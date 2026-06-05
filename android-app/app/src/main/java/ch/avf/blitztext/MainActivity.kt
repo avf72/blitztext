@@ -39,8 +39,12 @@ class MainActivity : AppCompatActivity() {
         b.btnAccessibility.setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
-        b.btnStart.setOnClickListener { startOverlay() }
+        b.btnStart.setOnClickListener {
+            Prefs.overlayEnabled = true
+            startOverlay()
+        }
         b.btnStop.setOnClickListener {
+            Prefs.overlayEnabled = false
             stopService(Intent(this, OverlayService::class.java))
         }
         b.btnSettings.setOnClickListener {
@@ -53,6 +57,23 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         refresh()
+        maybeAutoStartOverlay()
+    }
+
+    /** Startet den Overlay-Knopf automatisch, sobald alle Voraussetzungen erfuellt sind -
+     *  kein manuelles "Starten" mehr noetig (auch nicht nach Neustart + App-Oeffnen). */
+    private fun maybeAutoStartOverlay() {
+        val micGranted = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (Prefs.overlayEnabled &&
+            Prefs.isLoggedIn &&
+            Settings.canDrawOverlays(this) &&
+            micGranted &&
+            !OverlayService.isRunning
+        ) {
+            ContextCompat.startForegroundService(this, Intent(this, OverlayService::class.java))
+        }
     }
 
     private fun startOverlay() {

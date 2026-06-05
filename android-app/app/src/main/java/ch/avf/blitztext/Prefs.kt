@@ -56,4 +56,9 @@ object Prefs {
     var language: String
         get() = sp.getString("language", "de") ?: "de"
         set(v) = sp.edit().putString("language", v).apply()
+
+    /** Ob der Overlay-Knopf gewuenscht ist (Auto-Start beim App-Oeffnen). */
+    var overlayEnabled: Boolean
+        get() = sp.getBoolean("overlay_enabled", true)
+        set(v) = sp.edit().putBoolean("overlay_enabled", v).apply()
 }
