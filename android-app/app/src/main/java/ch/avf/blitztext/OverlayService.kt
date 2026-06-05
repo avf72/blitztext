@@ -2,6 +2,7 @@ package ch.avf.blitztext
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -9,6 +10,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.content.res.ColorStateList
 import android.graphics.PixelFormat
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.view.Gravity
@@ -150,7 +152,10 @@ class OverlayService : Service() {
             }
             DictateClient.dictate(rec, Prefs.workflow, Prefs.language, token)
                 .onSuccess { text -> deliver(text) }
-                .onFailure { toast(it.message ?: "Fehler bei der Verarbeitung") }
+                .onFailure { err ->
+                    val m = err.message ?: "Fehler bei der Verarbeitung"
+                    if (isQuotaError(m)) showQuotaNotification() else toast(m)
+                }
             reset()
         }
     }
@@ -176,6 +181,39 @@ class OverlayService : Service() {
 
     private fun toast(msg: String) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun isQuotaError(m: String): Boolean {
+        val l = m.lowercase()
+        return l.contains("quota") || l.contains("billing") || l.contains("insufficient")
+    }
+
+    /** Bei aufgebrauchtem OpenAI-Guthaben: Hinweis + Direktlink zum Aufladen. */
+    private fun showQuotaNotification() {
+        val channelId = "blitztext_alerts"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val ch = NotificationChannel(
+                channelId, "Blitztext Hinweise", NotificationManager.IMPORTANCE_HIGH
+            )
+            getSystemService(NotificationManager::class.java).createNotificationChannel(ch)
+        }
+        val pi = PendingIntent.getActivity(
+            this, 0,
+            Intent(Intent.ACTION_VIEW, Uri.parse(Links.OPENAI_BILLING))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val notif = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_mic)
+            .setContentTitle("Kein OpenAI-Guthaben")
+            .setContentText("Guthaben aufgebraucht. Tippen, um Guthaben zu laden.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .addAction(0, "Guthaben laden", pi)
+            .build()
+        getSystemService(NotificationManager::class.java).notify(2, notif)
+        toast("Kein OpenAI-Guthaben - siehe Benachrichtigung")
     }
 
     private fun startAsForeground() {

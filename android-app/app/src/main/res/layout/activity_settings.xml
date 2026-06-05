@@ -46,6 +46,33 @@
         android:background="#33000000" />
 
     <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="OpenAI-Konto"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Guthaben aufladen und Kosten/Nutzung einsehen."
+        android:textColor="#888888"
+        android:textSize="12sp" />
+
+    <Button
+        android:id="@+id/btn_billing"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="OpenAI-Guthaben &amp; Kosten" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="24dp"
+        android:background="#33000000" />
+
+    <TextView
         android:id="@+id/version_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

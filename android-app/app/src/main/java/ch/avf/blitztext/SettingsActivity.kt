@@ -38,6 +38,10 @@ class SettingsActivity : AppCompatActivity() {
             finish()
         }
 
+        b.btnBilling.setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Links.OPENAI_BILLING)))
+        }
+
         b.versionText.text =
             "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
         b.btnUpdate.setOnClickListener { checkAndUpdate() }
