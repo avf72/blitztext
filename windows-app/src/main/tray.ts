@@ -1,9 +1,10 @@
 // Tray-Icon mit Workflow-Auswahl und Einstellungen.
 
-import { app, Menu, Tray, nativeImage } from "electron";
+import { app, Menu, Tray, nativeImage, shell } from "electron";
 import { join } from "node:path";
 import { getSettings, saveSettings, type WorkflowType } from "./store";
 import { openSettings } from "./windows";
+import { OPENAI_BILLING } from "./constants";
 
 let tray: Tray | null = null;
 
@@ -39,6 +40,7 @@ export function rebuildMenu(): void {
       },
     })),
     { type: "separator" },
+    { label: "OpenAI-Guthaben laden ...", click: () => void shell.openExternal(OPENAI_BILLING) },
     { label: "Einstellungen ...", click: () => openSettings() },
     { label: "Beenden", click: () => app.quit() },
   ]);

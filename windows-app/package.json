@@ -23,6 +23,7 @@
   "build": {
     "appId": "ch.avf.blitztext",
     "productName": "Blitztext",
+    "artifactName": "Blitztext-Setup.${ext}",
     "directories": { "output": "release" },
     "files": ["dist/**/*", "assets/**/*"],
     "win": {

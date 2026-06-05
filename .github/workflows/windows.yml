@@ -1,0 +1,45 @@
+name: Build Blitztext Windows
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "windows-app/**"
+      - ".github/workflows/windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: windows-app
+        run: npm ci
+
+      - name: Build installer
+        working-directory: windows-app
+        run: |
+          npm run build
+          npx electron-builder --win --config.extraMetadata.version=0.1.${{ github.run_number }}
+
+      - name: Write version file
+        shell: bash
+        run: echo "${{ github.run_number }}" > windows-app/windows-version.txt
+
+      - name: Publish to 'windows-latest' release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows-latest
+          name: Blitztext Windows (latest)
+          files: |
+            windows-app/release/Blitztext-Setup.exe
+            windows-app/windows-version.txt

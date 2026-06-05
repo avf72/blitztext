@@ -6,6 +6,22 @@ import { transcribe, rewrite } from "./openai";
 import { buildImprovePrompt, DAMPF_ABLASSEN_PROMPT, buildEmojiPrompt } from "./prompts";
 import { cleaned, isLikelyArtifact, shouldRejectRecording } from "./quality";
 import { copyToClipboard, pasteIntoActiveApp } from "./paste";
+import { Notification, shell } from "electron";
+import { OPENAI_BILLING } from "./constants";
+
+function isQuotaError(m: string): boolean {
+  const l = m.toLowerCase();
+  return l.includes("quota") || l.includes("billing") || l.includes("insufficient");
+}
+
+function quotaNotification(): void {
+  const n = new Notification({
+    title: "Kein OpenAI-Guthaben",
+    body: "Guthaben aufgebraucht. Klicken, um Guthaben zu laden.",
+  });
+  n.on("click", () => void shell.openExternal(OPENAI_BILLING));
+  n.show();
+}
 
 type State = "idle" | "recording" | "processing";
 let state: State = "idle";
@@ -65,7 +81,13 @@ export async function handleAudio(buffer: Buffer, durationSec: number): Promise<
 
     await deliver(cleaned(result));
   } catch (err) {
-    fail(err instanceof Error ? err.message : "Unbekannter Fehler");
+    const m = err instanceof Error ? err.message : "Unbekannter Fehler";
+    if (isQuotaError(m)) {
+      quotaNotification();
+      fail("Kein OpenAI-Guthaben.");
+    } else {
+      fail(m);
+    }
   }
 }
 

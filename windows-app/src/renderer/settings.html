@@ -136,6 +136,17 @@
     <button id="save">Speichern</button>
     <div id="saved"></div>
 
+    <hr style="margin: 24px 0; border: none; border-top: 1px solid #d4d4d8" />
+
+    <label>OpenAI-Konto</label>
+    <div class="hint">Guthaben aufladen und Kosten/Nutzung einsehen.</div>
+    <button id="billing" style="background: #16a34a">OpenAI-Guthaben &amp; Kosten</button>
+
+    <label>App</label>
+    <div class="hint" id="version"></div>
+    <button id="update" style="background: #52525b">Nach Updates suchen</button>
+    <div class="hint" id="updateStatus"></div>
+
     <script>
       const $ = (id) => document.getElementById(id);
 
@@ -174,6 +185,30 @@
         $("saved").textContent = "Gespeichert.";
         setTimeout(() => ($("saved").textContent = ""), 2000);
         load();
+      });
+
+      $("billing").addEventListener("click", () => blitz.openBilling());
+
+      blitz.appVersion().then((v) => {
+        $("version").textContent = "Version " + v;
+      });
+
+      $("update").addEventListener("click", async () => {
+        $("updateStatus").textContent = "Suche nach Update ...";
+        const r = await blitz.checkUpdate();
+        if (r.status === "error") {
+          $("updateStatus").textContent = "Pruefung fehlgeschlagen.";
+          return;
+        }
+        if (r.status === "uptodate") {
+          $("updateStatus").textContent = "Du hast bereits die neueste Version.";
+          return;
+        }
+        $("updateStatus").textContent = "Lade Update und starte Installation ...";
+        const res = await blitz.installUpdate();
+        if (!res.ok) {
+          $("updateStatus").textContent = res.error || "Update fehlgeschlagen.";
+        }
       });
 
       load();

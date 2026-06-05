@@ -1,7 +1,9 @@
 // App-Einstieg: Tray-only-App, Hotkey, IPC-Verdrahtung.
 
-import { app, ipcMain, session } from "electron";
+import { app, ipcMain, session, shell } from "electron";
 import { createTray, rebuildMenu } from "./tray";
+import { checkUpdate, downloadAndRunInstaller } from "./update";
+import { OPENAI_BILLING } from "./constants";
 import { registerHotkey, unregisterHotkey } from "./hotkey";
 import { getOverlay, openSettings } from "./windows";
 import { handleAudio } from "./controller";
@@ -72,3 +74,9 @@ ipcMain.handle("apikey:set", (_e, key: string) => {
   setApiKey(key);
   return { hasKey: hasApiKey(), maskedKey: maskedApiKey() };
 });
+
+// --- IPC: Guthaben-Link + Update ---
+ipcMain.handle("billing:open", () => shell.openExternal(OPENAI_BILLING));
+ipcMain.handle("app:version", () => app.getVersion());
+ipcMain.handle("update:check", () => checkUpdate());
+ipcMain.handle("update:install", () => downloadAndRunInstaller());
