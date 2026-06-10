@@ -57,7 +57,7 @@ jobs:
         run: cp android-app/app/build/outputs/apk/release/app-release.apk android-app/app/build/outputs/apk/release/app-debug.apk
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: blitztext-release-apk
           path: android-app/app/build/outputs/apk/release/app-release.apk
