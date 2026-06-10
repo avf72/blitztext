@@ -4,7 +4,20 @@ import "server-only";
 
 const TRANSCRIBE_URL = "https://api.openai.com/v1/audio/transcriptions";
 const CHAT_URL = "https://api.openai.com/v1/chat/completions";
-const WHISPER_MODEL = "whisper-1";
+
+export type TranscriptionModel =
+  | "gpt-4o-mini-transcribe"
+  | "gpt-4o-transcribe"
+  | "whisper-1";
+
+export const TRANSCRIPTION_MODELS: TranscriptionModel[] = [
+  "gpt-4o-mini-transcribe",
+  "gpt-4o-transcribe",
+  "whisper-1",
+];
+
+// gpt-4o-mini-transcribe: schneller und genauer als das alte whisper-1.
+export const DEFAULT_TRANSCRIPTION_MODEL: TranscriptionModel = "gpt-4o-mini-transcribe";
 
 export type RewriteModel = "gpt-4o-mini" | "gpt-4o";
 
@@ -34,13 +47,14 @@ export async function transcribe(
   audio: Blob,
   fileName: string,
   language: string,
-  customTerms: string[]
+  customTerms: string[],
+  model: TranscriptionModel = DEFAULT_TRANSCRIPTION_MODEL
 ): Promise<string> {
   const auth = authHeader();
 
   const form = new FormData();
   form.append("file", audio, fileName);
-  form.append("model", WHISPER_MODEL);
+  form.append("model", model);
   form.append("response_format", "text");
   if (customTerms.length > 0) {
     form.append("prompt", `Eigennamen und Begriffe: ${customTerms.join(", ")}`);

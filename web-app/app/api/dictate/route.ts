@@ -4,7 +4,12 @@ import { NextResponse } from "next/server";
 import { getSupabaseForRequest } from "@/lib/supabase/from-request";
 import { loadSettings } from "@/lib/settings-service";
 import { consumeQuota } from "@/lib/rate-limit";
-import { transcribe } from "@/lib/openai";
+import {
+  transcribe,
+  TRANSCRIPTION_MODELS,
+  DEFAULT_TRANSCRIPTION_MODEL,
+  type TranscriptionModel,
+} from "@/lib/openai";
 import { applyWorkflow } from "@/lib/workflow";
 import { cleaned, isLikelyArtifact, shouldRejectRecording } from "@/lib/quality";
 import type { WorkflowType } from "@/lib/types";
@@ -77,12 +82,19 @@ export async function POST(request: Request) {
       ? langOverride.trim()
       : settings.language;
 
+  const modelOverride = form.get("model");
+  const model: TranscriptionModel =
+    typeof modelOverride === "string" &&
+    TRANSCRIPTION_MODELS.includes(modelOverride as TranscriptionModel)
+      ? (modelOverride as TranscriptionModel)
+      : DEFAULT_TRANSCRIPTION_MODEL;
+
   const fileName = (file as File).name || "audio.webm";
   const vocabularyHints = durationSec >= 0.9 ? settings.customTerms : [];
 
   try {
     const raw = cleaned(
-      await transcribe(file, fileName, language, vocabularyHints)
+      await transcribe(file, fileName, language, vocabularyHints, model)
     );
     if (isLikelyArtifact(raw, durationSec)) {
       return NextResponse.json({ error: NO_RECORDING }, { status: 422 });
