@@ -27,6 +27,10 @@ jobs:
 
       - name: Build installer
         working-directory: windows-app
+        # Versionsschema: 0.1.{run_number} (Auto, wie Android). Das dritte Segment ist
+        # die Build-Nummer, die der In-App-Updater (update.ts) als Zaehler vergleicht.
+        # package.json-Version (0.1.0) ist nur Basis fuer lokale Builds und wird hier
+        # bewusst ueberschrieben — NICHT manuell auf 0.2.x bumpen.
         run: |
           npm run build
           npx electron-builder --win --config.extraMetadata.version=0.1.${{ github.run_number }}
