@@ -63,7 +63,7 @@ jobs:
           path: android-app/app/build/outputs/apk/release/app-release.apk
 
       - name: Publish APK to 'latest' release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: latest
           name: Blitztext (latest)
