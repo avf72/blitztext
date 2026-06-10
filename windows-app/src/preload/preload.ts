@@ -14,15 +14,23 @@ contextBridge.exposeInMainWorld("blitz", {
   // Overlay: Audio zurueck an Main
   sendAudio: (buffer: ArrayBuffer, duration: number) =>
     ipcRenderer.send("audio", { buffer, duration }),
+  log: (message: string) => ipcRenderer.send("renderer:log", message),
+  overlayReady: () => ipcRenderer.send("overlay:ready"),
 
   // Einstellungen
   getSettings: () => ipcRenderer.invoke("settings:get"),
   saveSettings: (partial: unknown) => ipcRenderer.invoke("settings:save", partial),
   setApiKey: (key: string) => ipcRenderer.invoke("apikey:set", key),
+  toggleRecording: () => ipcRenderer.invoke("recording:toggle"),
+  recordingState: () => ipcRenderer.invoke("recording:state"),
 
   // Guthaben + Update
   openBilling: () => ipcRenderer.invoke("billing:open"),
   appVersion: () => ipcRenderer.invoke("app:version"),
+  quitApp: () => {
+    ipcRenderer.send("app:quit-now");
+    return ipcRenderer.invoke("app:quit");
+  },
   checkUpdate: () => ipcRenderer.invoke("update:check"),
   installUpdate: () => ipcRenderer.invoke("update:install"),
 });

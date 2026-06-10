@@ -3,6 +3,8 @@
 import { app, Menu, Tray, nativeImage, shell } from "electron";
 import { join } from "node:path";
 import { getSettings, saveSettings, type WorkflowType } from "./store";
+import { currentState, toggle } from "./controller";
+import { getHotkeyRegistration } from "./hotkey";
 import { openSettings } from "./windows";
 import { OPENAI_BILLING } from "./constants";
 
@@ -26,9 +28,15 @@ export function createTray(): void {
 export function rebuildMenu(): void {
   if (!tray) return;
   const { workflow, hotkey } = getSettings();
+  const { active } = getHotkeyRegistration();
+  const recordingLabel = currentState() === "recording" ? "Aufnahme stoppen" : "Aufnahme starten";
 
   const menu = Menu.buildFromTemplate([
-    { label: `Hotkey: ${hotkey}`, enabled: false },
+    { label: `Blitztext ${app.getVersion()}`, enabled: false },
+    { label: `Eingestellt: ${hotkey}`, enabled: false },
+    { label: `Aktiv: ${active ?? "kein Hotkey"}`, enabled: false },
+    { type: "separator" },
+    { label: recordingLabel, click: () => toggle() },
     { type: "separator" },
     ...WORKFLOWS.map((w) => ({
       label: `${w.label}  —  ${w.sub}`,

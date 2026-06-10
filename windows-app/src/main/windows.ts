@@ -1,17 +1,19 @@
 // Fenster-Erzeugung: Overlay (Aufnahme/Status) und Einstellungen.
 
-import { BrowserWindow, screen } from "electron";
+import { app, BrowserWindow, screen } from "electron";
 import { join } from "node:path";
 
 const preload = join(__dirname, "../preload/preload.js");
 
 let overlay: BrowserWindow | null = null;
 let settings: BrowserWindow | null = null;
+let overlayReady = false;
 
 /** Schmales, nicht-fokussierbares Overlay am unteren Bildschirmrand. */
 export function getOverlay(): BrowserWindow {
   if (overlay && !overlay.isDestroyed()) return overlay;
 
+  overlayReady = false;
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   const w = 280;
   const h = 64;
@@ -25,15 +27,30 @@ export function getOverlay(): BrowserWindow {
     transparent: true,
     resizable: false,
     movable: false,
-    focusable: false, // stiehlt der Ziel-App nie den Fokus
+    focusable: true,
     skipTaskbar: true,
     alwaysOnTop: true,
     show: false,
     webPreferences: { preload, contextIsolation: true, nodeIntegration: false },
   });
   overlay.setAlwaysOnTop(true, "screen-saver");
+  overlay.webContents.on("did-start-loading", () => {
+    overlayReady = false;
+  });
+  overlay.on("closed", () => {
+    overlayReady = false;
+    overlay = null;
+  });
   overlay.loadFile(join(__dirname, "../renderer/overlay.html"));
   return overlay;
+}
+
+export function markOverlayReady(): void {
+  overlayReady = true;
+}
+
+export function isOverlayReady(): boolean {
+  return overlayReady;
 }
 
 export function showOverlay(): void {
@@ -54,12 +71,15 @@ export function openSettings(): void {
   settings = new BrowserWindow({
     width: 460,
     height: 640,
-    title: "Blitztext Einstellungen",
+    title: `Blitztext Einstellungen ${app.getVersion()}`,
     resizable: false,
     webPreferences: { preload, contextIsolation: true, nodeIntegration: false },
   });
   settings.setMenuBarVisibility(false);
   settings.loadFile(join(__dirname, "../renderer/settings.html"));
+  settings.on("close", () => {
+    app.quit();
+  });
   settings.on("closed", () => {
     settings = null;
   });

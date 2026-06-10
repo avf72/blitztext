@@ -86,6 +86,7 @@
 
       blitz.onRecordingStart(async () => {
         try {
+          blitz.log("recording:start empfangen");
           stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           chunks = [];
           mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
@@ -95,14 +96,17 @@
           mediaRecorder.onstop = handleStop;
           startTime = performance.now();
           mediaRecorder.start();
+          blitz.log("MediaRecorder gestartet");
           startMeter(stream);
         } catch (err) {
           label.textContent = "Mikrofon nicht verfuegbar";
+          blitz.log("Mikrofonfehler: " + (err && err.message ? err.message : String(err)));
           blitz.sendAudio(new ArrayBuffer(0), 0);
         }
       });
 
       blitz.onRecordingStop(() => {
+        blitz.log("recording:stop empfangen");
         if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
       });
 
@@ -112,6 +116,7 @@
         const blob = new Blob(chunks, { type: "audio/webm" });
         const buf = await blob.arrayBuffer();
         if (stream) stream.getTracks().forEach((t) => t.stop());
+        blitz.log("Audio wird gesendet: " + buf.byteLength + " Bytes, " + duration.toFixed(2) + "s");
         blitz.sendAudio(buf, duration);
       }
 
@@ -142,6 +147,9 @@
         if (rafId) cancelAnimationFrame(rafId);
         if (audioCtx) audioCtx.close();
       }
+
+      blitz.log("Overlay UI bereit");
+      blitz.overlayReady();
     </script>
   </body>
 </html>

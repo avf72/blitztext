@@ -2,6 +2,7 @@
 import assert from "node:assert";
 import * as quality from "../dist/main/quality.js";
 import * as prompts from "../dist/main/prompts.js";
+import * as store from "../dist/main/store.js";
 
 let passed = 0;
 const ok = (name, fn) => {
@@ -60,6 +61,23 @@ ok("emoji-Prompt mittel", () =>
 );
 ok("dampf-Prompt vorhanden", () =>
   assert.ok(prompts.DAMPF_ABLASSEN_PROMPT.includes("ruhig"))
+);
+
+console.log("store.ts:");
+ok("deutscher Hotkey wird normalisiert", () =>
+  assert.strictEqual(
+    store.normalizeHotkey("Strg + Shift + Leertaste"),
+    "CommandOrControl+Shift+Space"
+  )
+);
+ok("leerer Hotkey faellt auf Standard zurueck", () =>
+  assert.strictEqual(store.normalizeHotkey(""), "F10")
+);
+ok("Strg+Win wird normalisiert", () =>
+  assert.strictEqual(store.normalizeHotkey("Strg + Win"), "CommandOrControl+Super")
+);
+ok("alter F9-Hotkey bleibt beim Normalisieren unveraendert", () =>
+  assert.strictEqual(store.normalizeHotkey("F9"), "F9")
 );
 
 console.log(`\n${passed} Tests bestanden.`);

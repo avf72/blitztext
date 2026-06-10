@@ -8,6 +8,16 @@ import type { Tone, EmojiDensity } from "./prompts";
 
 export type WorkflowType = "transcription" | "textImprover" | "dampfAblassen" | "emojiText";
 
+export type TranscriptionModel = "gpt-4o-mini-transcribe" | "gpt-4o-transcribe" | "whisper-1";
+
+export const TRANSCRIPTION_MODELS: TranscriptionModel[] = [
+  "gpt-4o-mini-transcribe",
+  "gpt-4o-transcribe",
+  "whisper-1",
+];
+
+export const DEFAULT_TRANSCRIPTION_MODEL: TranscriptionModel = "gpt-4o-mini-transcribe";
+
 export interface Settings {
   workflow: WorkflowType;
   hotkey: string;
@@ -16,16 +26,20 @@ export interface Settings {
   emojiDensity: EmojiDensity;
   customTerms: string[];
   context: string;
+  transcriptionModel: TranscriptionModel;
 }
+
+export const DEFAULT_HOTKEY = "F10";
 
 const DEFAULTS: Settings = {
   workflow: "transcription",
-  hotkey: "F9",
+  hotkey: DEFAULT_HOTKEY,
   language: "de",
   tone: "neutral",
   emojiDensity: "mittel",
   customTerms: [],
   context: "",
+  transcriptionModel: DEFAULT_TRANSCRIPTION_MODEL,
 };
 
 interface StoredFile extends Settings {
@@ -44,7 +58,10 @@ function read(): StoredFile {
   if (existsSync(path)) {
     try {
       const parsed = JSON.parse(readFileSync(path, "utf-8"));
-      cache = { ...DEFAULTS, ...parsed };
+      cache = migrateSettings({ ...DEFAULTS, ...parsed });
+      if (JSON.stringify(cache) !== JSON.stringify({ ...DEFAULTS, ...parsed })) {
+        write(cache);
+      }
       return cache!;
     } catch {
       // korrupte Datei -> Defaults
@@ -59,16 +76,91 @@ function write(data: StoredFile): void {
   writeFileSync(filePath(), JSON.stringify(data, null, 2), "utf-8");
 }
 
+function migrateSettings(data: StoredFile): StoredFile {
+  const hotkey = normalizeHotkey(data.hotkey);
+  // Alte, nicht mehr genutzte Default-Hotkeys auf den aktuellen Standard ziehen.
+  if (hotkey === "F8" || hotkey === "F9") {
+    return { ...data, hotkey: DEFAULT_HOTKEY };
+  }
+  return { ...data, hotkey };
+}
+
 export function getSettings(): Settings {
   const { apiKeyEnc, ...settings } = read();
-  return settings;
+  return { ...settings, hotkey: normalizeHotkey(settings.hotkey) };
 }
 
 export function saveSettings(partial: Partial<Settings>): Settings {
   const current = read();
-  const next: StoredFile = { ...current, ...partial };
+  const model = partial.transcriptionModel ?? current.transcriptionModel;
+  const next = migrateSettings({
+    ...current,
+    ...partial,
+    hotkey: normalizeHotkey(partial.hotkey ?? current.hotkey),
+    transcriptionModel: TRANSCRIPTION_MODELS.includes(model as TranscriptionModel)
+      ? (model as TranscriptionModel)
+      : DEFAULT_TRANSCRIPTION_MODEL,
+  });
   write(next);
   return getSettings();
+}
+
+// Reine Modifier-Kombis (z.B. CommandOrControl+Super) koennen NICHT ueber Electrons
+// globalShortcut (Win32 RegisterHotKey) laufen — sie brauchen eine Haupttaste.
+// Solche Kombis werden stattdessen ueber einen Low-Level-Keyboard-Hook als
+// "Halten zum Sprechen" abgefangen (siehe pushToTalk.ts).
+const MODIFIER_TOKENS = new Set([
+  "CommandOrControl", "CmdOrCtrl", "Command", "Cmd", "Control", "Ctrl",
+  "Alt", "Option", "AltGr", "Shift", "Super", "Meta",
+]);
+
+export function isModifierOnlyHotkey(accelerator: string): boolean {
+  const parts = accelerator.split("+").map((p) => p.trim()).filter(Boolean);
+  return parts.length >= 2 && parts.every((p) => MODIFIER_TOKENS.has(p));
+}
+
+export function normalizeHotkey(input: string): string {
+  const raw = input.trim();
+  if (!raw) return DEFAULTS.hotkey;
+
+  const aliases: Record<string, string> = {
+    cmdorctrl: "CommandOrControl",
+    commandorcontrol: "CommandOrControl",
+    ctrl: "CommandOrControl",
+    control: "CommandOrControl",
+    strg: "CommandOrControl",
+    steuerung: "CommandOrControl",
+    cmd: "Command",
+    command: "Command",
+    meta: "Meta",
+    win: "Super",
+    windows: "Super",
+    super: "Super",
+    shift: "Shift",
+    umschalt: "Shift",
+    umschalttaste: "Shift",
+    alt: "Alt",
+    option: "Alt",
+    space: "Space",
+    leer: "Space",
+    leertaste: "Space",
+    return: "Enter",
+    enter: "Enter",
+    eingabe: "Enter",
+    esc: "Escape",
+    escape: "Escape",
+    tab: "Tab",
+  };
+
+  return raw
+    .replace(/\s*\+\s*/g, "+")
+    .split("+")
+    .map((part) => {
+      const compact = part.toLowerCase().replace(/[\s_-]/g, "");
+      return aliases[compact] ?? part.trim();
+    })
+    .filter(Boolean)
+    .join("+");
 }
 
 export function setApiKey(key: string): void {

@@ -6,7 +6,7 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
     />
-    <title>Blitztext Einstellungen</title>
+    <title>Blitztext Einstellungen __APP_VERSION__</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -27,6 +27,17 @@
         margin: 0 0 18px;
         color: #71717a;
         font-size: 12px;
+      }
+      .title-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      #version {
+        color: #71717a;
+        font-size: 12px;
+        white-space: nowrap;
       }
       label {
         display: block;
@@ -54,6 +65,15 @@
         color: #71717a;
         font-size: 11px;
         margin-top: 3px;
+      }
+      .hotkey-status {
+        color: #3f3f46;
+        font-size: 12px;
+        margin-top: 5px;
+      }
+      .recording-status {
+        min-height: 28px;
+        color: #3f3f46;
       }
       .row {
         display: flex;
@@ -83,10 +103,19 @@
         margin-top: 10px;
         height: 14px;
       }
+      .danger {
+        background: #b91c1c;
+      }
+      .danger:hover {
+        background: #991b1b;
+      }
     </style>
   </head>
   <body>
-    <h1>Blitztext</h1>
+    <div class="title-row">
+      <h1>Blitztext</h1>
+      <span id="version">Version __APP_VERSION__</span>
+    </div>
     <p class="sub">Sprache rein. Text raus. Hotkey druecken, sprechen, Text wird eingefuegt.</p>
 
     <label for="apikey">OpenAI API Key</label>
@@ -101,6 +130,14 @@
       <option value="emojiText">Blitztext :) — Text rein. Emojis dazu.</option>
     </select>
 
+    <label for="transcriptionModel">Transkriptions-Modell</label>
+    <select id="transcriptionModel">
+      <option value="gpt-4o-mini-transcribe">Schnell — gpt-4o-mini-transcribe (empfohlen)</option>
+      <option value="gpt-4o-transcribe">Genau — gpt-4o-transcribe (etwas langsamer)</option>
+      <option value="whisper-1">Klassisch — whisper-1 (am langsamsten)</option>
+    </select>
+    <div class="hint">Schnell = beste Reaktionszeit. Genau = hoechste Qualitaet bei schwierigem Audio.</div>
+
     <div class="row">
       <div>
         <label for="language">Sprache</label>
@@ -108,10 +145,20 @@
       </div>
       <div>
         <label for="hotkey">Hotkey</label>
-        <input id="hotkey" type="text" placeholder="F9" />
+        <input id="hotkey" type="text" placeholder="F10" />
       </div>
     </div>
-    <div class="hint">Hotkey-Format z.B. CommandOrControl+Shift+Space oder F9</div>
+    <div class="row" style="margin-top: 8px">
+      <button id="recordHotkey" type="button" style="background: #6d28d9; margin-top: 0">Tasten aufnehmen</button>
+      <button id="presetCtrlWin" type="button" style="background: #0369a1; margin-top: 0">Strg+Win (Halten)</button>
+    </div>
+    <div class="hint">
+      <b>Normaler Hotkey</b> (z.B. F10, Strg+Shift+Leertaste): einmal druecken = Start, nochmal = Stopp.<br />
+      <b>Strg+Win</b> oder andere reine Modifier-Kombis: <b>Halten zum Sprechen</b> — gedrueckt halten, sprechen, loslassen.
+    </div>
+    <div class="hotkey-status" id="hotkeyStatus">Aktiver Standard: F10.</div>
+    <button id="recordingTest" type="button" style="background: #0f766e">Aufnahme starten</button>
+    <div class="hint recording-status" id="recordingStatus">Aufnahmebutton wird vorbereitet ...</div>
 
     <label for="tone">Ton (fuer Blitztext+)</label>
     <select id="tone">
@@ -133,25 +180,47 @@
     <label for="context">Kontext (optional)</label>
     <textarea id="context" placeholder="z.B. geschaeftliche E-Mails auf Deutsch"></textarea>
 
-    <button id="save">Speichern</button>
+    <button id="save" type="button">Speichern</button>
     <div id="saved"></div>
 
     <hr style="margin: 24px 0; border: none; border-top: 1px solid #d4d4d8" />
 
     <label>OpenAI-Konto</label>
     <div class="hint">Guthaben aufladen und Kosten/Nutzung einsehen.</div>
-    <button id="billing" style="background: #16a34a">OpenAI-Guthaben &amp; Kosten</button>
+    <button id="billing" type="button" style="background: #16a34a">OpenAI-Guthaben &amp; Kosten</button>
 
     <label>App</label>
-    <button id="update" style="background: #52525b">Nach Updates suchen</button>
+    <button id="update" type="button" style="background: #52525b">Nach Updates suchen</button>
     <div class="hint" id="updateStatus"></div>
+    <button id="quit" type="button" class="danger">App beenden</button>
 
     <script>
       const $ = (id) => document.getElementById(id);
+      const hasBridge = (name) => window.blitz && typeof window.blitz[name] === "function";
+
+      function writeRecordingStatus(text) {
+        $("recordingStatus").textContent = text;
+      }
+
+      function bridgeReady() {
+        const ok = hasBridge("toggleRecording") && hasBridge("recordingState") && hasBridge("log");
+        if (!ok) {
+          writeRecordingStatus("App-Verbindung nicht geladen. Bitte App komplett beenden und neu starten.");
+        }
+        return ok;
+      }
+
+      function logFromSettings(message) {
+        try {
+          if (hasBridge("log")) blitz.log(message);
+        } catch {}
+      }
 
       async function load() {
-        const { settings, hasKey, maskedKey } = await blitz.getSettings();
+        const { settings, hotkeyRegistration, appVersion, hasKey, maskedKey } = await blitz.getSettings();
+        $("version").textContent = appVersion ? "Version " + appVersion : "Version __APP_VERSION__";
         $("workflow").value = settings.workflow;
+        if (settings.transcriptionModel) $("transcriptionModel").value = settings.transcriptionModel;
         $("language").value = settings.language;
         $("hotkey").value = settings.hotkey;
         $("tone").value = settings.tone;
@@ -161,9 +230,138 @@
         $("keyhint").textContent = hasKey
           ? "Gespeichert: " + maskedKey + " (leer lassen, um zu behalten)"
           : "Noch kein Key hinterlegt.";
+        const active = hotkeyRegistration?.active;
+        const requested = hotkeyRegistration?.requested || settings.hotkey;
+        const isPtt = hotkeyRegistration?.kind === "ptt";
+        $("hotkeyStatus").textContent =
+          active
+            ? active === requested
+              ? isPtt
+                ? "Aktiv (Halten zum Sprechen): " + active
+                : "Aktiver Hotkey: " + active
+              : "Der eingegebene Hotkey ist belegt. Bitte " + active + " druecken."
+            : "Kein Hotkey aktiv. Bitte F10 speichern.";
       }
 
+      // --- Hotkey per Tastendruck aufnehmen ---
+      let recordingHotkey = false;
+
+      function eventToAccelerator(e) {
+        const mods = [];
+        if (e.ctrlKey) mods.push("CommandOrControl");
+        if (e.shiftKey) mods.push("Shift");
+        if (e.altKey) mods.push("Alt");
+        if (e.metaKey) mods.push("Super");
+
+        const code = e.code || "";
+        let key = "";
+        if (/^Key[A-Z]$/.test(code)) key = code.slice(3);
+        else if (/^Digit[0-9]$/.test(code)) key = code.slice(5);
+        else if (/^F[0-9]{1,2}$/.test(code)) key = code;
+        else if (code === "Space") key = "Space";
+        else if (code === "Enter") key = "Enter";
+        else if (code === "Tab") key = "Tab";
+        else if (code === "Backquote") key = "`";
+        else if (/^Numpad[0-9]$/.test(code)) key = "num" + code.slice(6);
+        // reine Modifier-Tasten liefern keinen Haupt-Key
+        return { mods, key };
+      }
+
+      const heldDuringRecord = new Set();
+      let bestModCombo = "";
+
+      function startHotkeyRecording() {
+        recordingHotkey = true;
+        heldDuringRecord.clear();
+        bestModCombo = "";
+        $("recordHotkey").textContent = "Taste(n) druecken ...";
+        $("recordHotkey").style.background = "#b91c1c";
+        $("hotkey").value = "";
+        $("hotkeyStatus").textContent = "Druecke jetzt die Kombination (Esc bricht ab). Fuer Strg+Win: beide halten, dann loslassen.";
+      }
+
+      function stopHotkeyRecording() {
+        recordingHotkey = false;
+        heldDuringRecord.clear();
+        $("recordHotkey").textContent = "Tasten aufnehmen";
+        $("recordHotkey").style.background = "#6d28d9";
+      }
+
+      function modCount(value) {
+        return value.split("+").filter(Boolean).length;
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (!recordingHotkey) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.code === "Escape") {
+          stopHotkeyRecording();
+          load();
+          return;
+        }
+        heldDuringRecord.add(e.code);
+        const { mods, key } = eventToAccelerator(e);
+        if (key) {
+          // Normaler Hotkey mit Haupttaste -> sofort uebernehmen
+          $("hotkey").value = [...mods, key].join("+");
+          $("hotkeyStatus").textContent = "Aufgenommen: " + $("hotkey").value + " — zum Aktivieren Speichern druecken.";
+          stopHotkeyRecording();
+          return;
+        }
+        // Nur Modifier: groesste Kombi merken (fuer Halten-zum-Sprechen)
+        if (mods.length >= 2 && mods.length > modCount(bestModCombo)) {
+          bestModCombo = mods.join("+");
+        }
+        $("hotkey").value = mods.join("+");
+        $("hotkeyStatus").textContent =
+          mods.length >= 2
+            ? "Halten-zum-Sprechen-Kombi: " + mods.join("+") + " — jetzt loslassen zum Bestaetigen."
+            : "Weitere Taste druecken ...";
+      });
+
+      document.addEventListener("keyup", (e) => {
+        if (!recordingHotkey) return;
+        e.preventDefault();
+        heldDuringRecord.delete(e.code);
+        // Alle Tasten losgelassen und es war eine Modifier-Kombi -> uebernehmen
+        if (heldDuringRecord.size === 0 && bestModCombo) {
+          $("hotkey").value = bestModCombo;
+          $("hotkeyStatus").textContent = "Aufgenommen (Halten zum Sprechen): " + bestModCombo + " — Speichern druecken.";
+          stopHotkeyRecording();
+        }
+      });
+
+      $("recordHotkey").addEventListener("click", () => {
+        if (recordingHotkey) stopHotkeyRecording();
+        else startHotkeyRecording();
+      });
+
+      $("presetCtrlWin").addEventListener("click", () => {
+        if (recordingHotkey) stopHotkeyRecording();
+        $("hotkey").value = "CommandOrControl+Super";
+        $("hotkeyStatus").textContent = "Strg+Win gesetzt (Halten zum Sprechen) — jetzt Speichern druecken.";
+      });
+
+      // Gueltig: hat eine Haupttaste ODER ist eine Kombi aus 2+ Modifiern (Halten zum Sprechen).
+      const MODIFIERS = ["commandorcontrol", "cmdorctrl", "command", "cmd", "control", "ctrl", "alt", "option", "altgr", "shift", "super", "meta"];
+      function hotkeyIsValid(value) {
+        const parts = value.split("+").map((p) => p.trim().toLowerCase()).filter(Boolean);
+        if (parts.length === 0) return false;
+        const hasMainKey = parts.some((p) => !MODIFIERS.includes(p));
+        const modifierCount = parts.filter((p) => MODIFIERS.includes(p)).length;
+        return hasMainKey || modifierCount >= 2;
+      }
+
+      let recordingClickInFlight = false;
+
       $("save").addEventListener("click", async () => {
+        const hotkeyValue = $("hotkey").value.trim() || "F10";
+        if (!hotkeyIsValid(hotkeyValue)) {
+          $("hotkeyStatus").textContent =
+            "Hotkey unvollstaendig: Bitte eine Haupttaste (z.B. F10, Leertaste) ODER eine Kombi aus zwei Modifiern (z.B. Strg+Win) waehlen.";
+          return;
+        }
         const key = $("apikey").value.trim();
         if (key !== "") {
           await blitz.setApiKey(key);
@@ -171,8 +369,9 @@
         }
         await blitz.saveSettings({
           workflow: $("workflow").value,
+          transcriptionModel: $("transcriptionModel").value,
           language: $("language").value.trim() || "de",
-          hotkey: $("hotkey").value.trim() || "F9",
+          hotkey: hotkeyValue,
           tone: $("tone").value,
           emojiDensity: $("emojiDensity").value,
           customTerms: $("customTerms").value
@@ -187,9 +386,75 @@
       });
 
       $("billing").addEventListener("click", () => blitz.openBilling());
+      function setRecordingButton(state) {
+        if (state === "recording") {
+          $("recordingTest").textContent = "Aufnahme stoppen";
+          $("recordingTest").style.background = "#b91c1c";
+          $("recordingStatus").textContent = "Aufnahme laeuft. Zum Stoppen erneut klicken.";
+        } else if (state === "processing") {
+          $("recordingTest").textContent = "Wird verarbeitet ...";
+          $("recordingTest").style.background = "#52525b";
+          $("recordingStatus").textContent = "Audio wird verarbeitet.";
+        } else {
+          $("recordingTest").textContent = "Aufnahme starten";
+          $("recordingTest").style.background = "#0f766e";
+          writeRecordingStatus("Bereit. Klick auf Aufnahme starten wird im Log protokolliert.");
+        }
+      }
+
+      async function refreshRecordingButton() {
+        try {
+          if (!bridgeReady()) return;
+          const result = await blitz.recordingState();
+          setRecordingButton(result.state);
+        } catch {
+          setRecordingButton("idle");
+        }
+      }
+
+      async function toggleRecordingFromSettings() {
+        if (recordingClickInFlight) return;
+        if (!bridgeReady()) return;
+        recordingClickInFlight = true;
+        writeRecordingStatus("Klick erkannt, Aufnahme wird umgeschaltet ...");
+        try {
+          blitz.log("Settings-Aufnahmebutton geklickt, Verbindung OK");
+          const result = await blitz.toggleRecording();
+          setRecordingButton(result.state);
+        } catch (err) {
+          writeRecordingStatus("Aufnahmebutton konnte die App nicht erreichen. Bitte F10 testen.");
+          try {
+            blitz.log("Settings-Aufnahmebutton Fehler: " + (err && err.message ? err.message : String(err)));
+          } catch {}
+        } finally {
+          setTimeout(() => {
+            recordingClickInFlight = false;
+            refreshRecordingButton();
+          }, 250);
+        }
+      }
+
+      window.toggleRecordingFromSettings = toggleRecordingFromSettings;
+      $("recordingTest").addEventListener("click", toggleRecordingFromSettings);
+      $("recordingTest").addEventListener("pointerdown", () => {
+        writeRecordingStatus("Klick erkannt ...");
+      });
+      $("quit").addEventListener("click", async () => {
+        $("quit").textContent = "Wird beendet ...";
+        $("quit").disabled = true;
+        setTimeout(() => window.close(), 50);
+        try {
+          await blitz.quitApp();
+        } catch {
+          window.close();
+        }
+      });
 
       blitz.appVersion().then((v) => {
+        $("version").textContent = "Version " + v;
         $("update").textContent = "Nach Updates suchen  —  Version " + v;
+      }).catch(() => {
+        $("version").textContent = "Version __APP_VERSION__";
       });
 
       $("update").addEventListener("click", async () => {
@@ -210,7 +475,10 @@
         }
       });
 
+      logFromSettings("Settings UI geladen, Aufnahmebutton initialisiert");
       load();
+      refreshRecordingButton();
+      setInterval(refreshRecordingButton, 1000);
     </script>
   </body>
 </html>

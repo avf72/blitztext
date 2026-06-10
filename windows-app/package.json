@@ -1,6 +1,6 @@
 {
   "name": "blitztext-windows",
-  "version": "0.1.0",
+  "version": "0.2.7",
   "description": "Blitztext fuer Windows - Sprache rein, Text raus. Hotkey druecken, sprechen, Text wird in die aktive App eingefuegt.",
   "author": "Andreas von Foerster",
   "license": "MIT",
@@ -24,8 +24,17 @@
     "appId": "ch.avf.blitztext",
     "productName": "Blitztext",
     "artifactName": "Blitztext-Setup.${ext}",
-    "directories": { "output": "release" },
-    "files": ["dist/**/*", "assets/**/*"],
+    "directories": {
+      "output": "release"
+    },
+    "npmRebuild": false,
+    "files": [
+      "dist/**/*",
+      "assets/**/*"
+    ],
+    "asarUnpack": [
+      "**/node_modules/uiohook-napi/**"
+    ],
     "win": {
       "target": "nsis",
       "icon": "assets/icon.ico"
@@ -34,5 +43,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     }
+  },
+  "dependencies": {
+    "uiohook-napi": "^1.5.5"
   }
 }

@@ -1,11 +1,10 @@
 // OpenAI-Aufrufe: Whisper-Transkription + Chat-Rewrite.
 // Portiert aus BlitztextMac/Services/TranscriptionService.swift und LLMService.swift
 
-import { getApiKey } from "./store";
+import { getApiKey, DEFAULT_TRANSCRIPTION_MODEL, type TranscriptionModel } from "./store";
 
 const TRANSCRIBE_URL = "https://api.openai.com/v1/audio/transcriptions";
 const CHAT_URL = "https://api.openai.com/v1/chat/completions";
-const WHISPER_MODEL = "whisper-1";
 
 export type RewriteModel = "gpt-4o-mini" | "gpt-4o";
 
@@ -34,14 +33,15 @@ async function errorMessage(res: Response): Promise<string> {
 export async function transcribe(
   audio: Buffer,
   language: string,
-  customTerms: string[]
+  customTerms: string[],
+  model: TranscriptionModel = DEFAULT_TRANSCRIPTION_MODEL
 ): Promise<string> {
   const auth = authHeader();
 
   const form = new FormData();
   const blob = new Blob([new Uint8Array(audio)], { type: "audio/webm" });
   form.append("file", blob, "audio.webm");
-  form.append("model", WHISPER_MODEL);
+  form.append("model", model);
   form.append("response_format", "text");
   if (customTerms.length > 0) {
     form.append("prompt", `Eigennamen und Begriffe: ${customTerms.join(", ")}`);
