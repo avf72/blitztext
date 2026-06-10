@@ -150,7 +150,7 @@ class OverlayService : Service() {
                 reset()
                 return@launch
             }
-            DictateClient.dictate(rec, Prefs.workflow, Prefs.language, token)
+            DictateClient.dictate(rec, Prefs.workflow, Prefs.language, Prefs.transcriptionModel, token)
                 .onSuccess { text -> deliver(text) }
                 .onFailure { err ->
                     val m = err.message ?: "Fehler bei der Verarbeitung"

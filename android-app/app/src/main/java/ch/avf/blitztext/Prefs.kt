@@ -57,6 +57,12 @@ object Prefs {
         get() = sp.getString("language", "de") ?: "de"
         set(v) = sp.edit().putString("language", v).apply()
 
+    /** Transkriptions-Modell. Default: schnelles gpt-4o-mini-transcribe. */
+    var transcriptionModel: String
+        get() = sp.getString("transcription_model", "gpt-4o-mini-transcribe")
+            ?: "gpt-4o-mini-transcribe"
+        set(v) = sp.edit().putString("transcription_model", v).apply()
+
     /** Ob der Overlay-Knopf gewuenscht ist (Auto-Start beim App-Oeffnen). */
     var overlayEnabled: Boolean
         get() = sp.getBoolean("overlay_enabled", true)

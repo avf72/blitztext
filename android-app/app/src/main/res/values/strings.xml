@@ -9,4 +9,10 @@
         <item>Blitztext \$%&amp;! — Frust rein. Entspannt raus.</item>
         <item>Blitztext :) — Text rein. Emojis dazu.</item>
     </string-array>
+
+    <string-array name="transcription_model_labels">
+        <item>Schnell — gpt-4o-mini-transcribe (empfohlen)</item>
+        <item>Genau — gpt-4o-transcribe (etwas langsamer)</item>
+        <item>Klassisch — whisper-1 (am langsamsten)</item>
+    </string-array>
 </resources>

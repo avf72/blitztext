@@ -21,6 +21,27 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
+        android:text="Transkriptions-Modell"
+        android:textStyle="bold" />
+
+    <Spinner
+        android:id="@+id/spinner_model"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Schnell = beste Reaktionszeit. Genau = hoechste Qualitaet bei schwierigem Audio."
+        android:textColor="#888888"
+        android:textSize="12sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
         android:text="Sprache (z.B. de, en)"
         android:textStyle="bold" />
 

@@ -18,6 +18,9 @@ class SettingsActivity : AppCompatActivity() {
     private val workflowValues =
         listOf("transcription", "textImprover", "dampfAblassen", "emojiText")
 
+    private val modelValues =
+        listOf("gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         b = ActivitySettingsBinding.inflate(layoutInflater)
@@ -29,10 +32,19 @@ class SettingsActivity : AppCompatActivity() {
         b.spinnerWorkflow.setSelection(
             workflowValues.indexOf(Prefs.workflow).coerceAtLeast(0)
         )
+
+        b.spinnerModel.adapter = ArrayAdapter.createFromResource(
+            this, R.array.transcription_model_labels, android.R.layout.simple_spinner_dropdown_item
+        )
+        b.spinnerModel.setSelection(
+            modelValues.indexOf(Prefs.transcriptionModel).coerceAtLeast(0)
+        )
+
         b.editLanguage.setText(Prefs.language)
 
         b.btnSave.setOnClickListener {
             Prefs.workflow = workflowValues[b.spinnerWorkflow.selectedItemPosition]
+            Prefs.transcriptionModel = modelValues[b.spinnerModel.selectedItemPosition]
             Prefs.language = b.editLanguage.text.toString().trim().ifEmpty { "de" }
             Toast.makeText(this, "Gespeichert", Toast.LENGTH_SHORT).show()
             finish()

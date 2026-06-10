@@ -15,6 +15,7 @@ object DictateClient {
         rec: Recording,
         workflow: String,
         language: String,
+        model: String,
         token: String
     ): Result<String> = withContext(Dispatchers.IO) {
         val body = MultipartBody.Builder().setType(MultipartBody.FORM)
@@ -25,6 +26,7 @@ object DictateClient {
             .addFormDataPart("duration", rec.durationSec.toString())
             .addFormDataPart("workflow", workflow)
             .addFormDataPart("language", language)
+            .addFormDataPart("model", model)
             .build()
 
         val req = Request.Builder()
