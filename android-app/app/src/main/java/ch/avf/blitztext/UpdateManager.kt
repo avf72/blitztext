@@ -13,7 +13,7 @@ object UpdateManager {
 
     private const val BASE = "https://github.com/avf72/blitztext/releases/download/latest"
     private const val VERSION_URL = "$BASE/version.txt"
-    private const val APK_URL = "$BASE/app-debug.apk"
+    private const val APK_URL = "$BASE/app-release.apk"
 
     /** Neueste verfuegbare versionCode-Nummer (oder null bei Fehler). */
     suspend fun latestVersionCode(): Int? = withContext(Dispatchers.IO) {

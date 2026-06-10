@@ -43,21 +43,24 @@ jobs:
             git push
           fi
 
-      - name: Build debug APK
+      - name: Build signed release APK
         working-directory: android-app
         env:
           VERSION_CODE: ${{ github.run_number }}
           VERSION_NAME: 0.1.${{ github.run_number }}
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: gradle assembleRelease --no-daemon --stacktrace
 
       - name: Write version file
         run: echo "${{ github.run_number }}" > android-app/version.txt
 
+      - name: Compatibility copy for existing installs (<=0.1.8 erwarten app-debug.apk)
+        run: cp android-app/app/build/outputs/apk/release/app-release.apk android-app/app/build/outputs/apk/release/app-debug.apk
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: blitztext-debug-apk
-          path: android-app/app/build/outputs/apk/debug/app-debug.apk
+          name: blitztext-release-apk
+          path: android-app/app/build/outputs/apk/release/app-release.apk
 
       - name: Publish APK to 'latest' release
         uses: softprops/action-gh-release@v2
@@ -65,5 +68,6 @@ jobs:
           tag_name: latest
           name: Blitztext (latest)
           files: |
-            android-app/app/build/outputs/apk/debug/app-debug.apk
+            android-app/app/build/outputs/apk/release/app-release.apk
+            android-app/app/build/outputs/apk/release/app-debug.apk
             android-app/version.txt

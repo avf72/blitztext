@@ -59,6 +59,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Stufe 1: Release-Build signiert mit dem bestehenden Schluessel
+            // (debug-Config nutzt blitztext.jks -> gleiche Signatur, kein Neuinstall).
+            // Stufe 2 migriert auf eine eigene release-Config aus GitHub-Secrets.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
