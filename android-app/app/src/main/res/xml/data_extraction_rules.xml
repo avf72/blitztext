@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Schliesst die verschluesselten Prefs aus Cloud-Backup/Geraetewechsel aus:
+     der Android-Keystore-Schluessel ueberlebt das nicht, eine Wiederherstellung
+     fuehrt sonst zu einem Crash beim Entschluesseln. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="blitztext_secure.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="blitztext_secure.xml" />
+    </device-transfer>
+</data-extraction-rules>

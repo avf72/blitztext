@@ -9,13 +9,25 @@ import androidx.security.crypto.MasterKey
 object Prefs {
     private lateinit var sp: SharedPreferences
 
+    private const val FILE_NAME = "blitztext_secure"
+
     fun init(context: Context) {
+        sp = runCatching { open(context) }.getOrElse {
+            // Kaputter Zustand (z.B. wiederhergestelltes Backup ohne passenden
+            // Keystore-Schluessel) -> Datei verwerfen und frisch anlegen, statt
+            // bei jedem App-Start abzustuerzen.
+            context.deleteSharedPreferences(FILE_NAME)
+            open(context)
+        }
+    }
+
+    private fun open(context: Context): SharedPreferences {
         val master = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
-        sp = EncryptedSharedPreferences.create(
+        return EncryptedSharedPreferences.create(
             context,
-            "blitztext_secure",
+            FILE_NAME,
             master,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
