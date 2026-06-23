@@ -3,7 +3,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseForRequest } from "@/lib/supabase/from-request";
 import { loadSettings } from "@/lib/settings-service";
-import { consumeQuota } from "@/lib/rate-limit";
 import {
   transcribe,
   TRANSCRIPTION_MODELS,
@@ -50,23 +49,6 @@ export async function POST(request: Request) {
   // Zu kurze Aufnahmen: kein Quota-Verbrauch, kein OpenAI-Aufruf.
   if (shouldRejectRecording(durationSec)) {
     return NextResponse.json({ error: NO_RECORDING }, { status: 422 });
-  }
-
-  // Limit erst pruefen, wenn wir wirklich OpenAI aufrufen wuerden.
-  let quota;
-  try {
-    quota = await consumeQuota(supabase);
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Limit-Fehler" },
-      { status: 500 }
-    );
-  }
-  if (!quota.allowed) {
-    return NextResponse.json(
-      { error: `Tageslimit erreicht (${quota.limit}/Tag). Morgen wieder.` },
-      { status: 429 }
-    );
   }
 
   const settings = await loadSettings(supabase);

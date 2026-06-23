@@ -11,14 +11,12 @@ Vercel · PWA.
 
 ## Architektur
 - **Diktat-Flow:** Browser nimmt Audio auf (`lib/audio.ts`, MediaRecorder mit Mime-Erkennung
-  fuer iOS) -> `POST /api/dictate` -> Server prueft Auth + Tageslimit, ruft Whisper und den
+  fuer iOS) -> `POST /api/dictate` -> Server prueft Auth, ruft Whisper und den
   gewaehlten Workflow auf -> Text zurueck -> Kopieren / Teilen (`components/result-card.tsx`).
 - **OpenAI-Key** liegt ausschliesslich Server-seitig (`OPENAI_API_KEY`). Nichts Sensibles
   erreicht den Browser.
 - **Auth:** Supabase. Geschuetzte Routen via `middleware.ts`.
 - **Einstellungen** pro Nutzer in `user_settings` (RLS), folgen ueber Geraete.
-- **Rate-Limit:** `blitztext_usage_counters` + RPC `blitztext_increment_usage`
-  (SECURITY DEFINER, Nutzer aus `auth.uid()` - kein Service-Role-Key noetig), Tageslimit `DAILY_LIMIT`.
 
 ## Setup
 1. `npm install`
@@ -29,7 +27,7 @@ Vercel · PWA.
 
 ## Env-Variablen
 Siehe `.env.local.example`: `OPENAI_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`,
-`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `DAILY_LIMIT`.
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 
 ## Deployment (Vercel)
 - Root-Verzeichnis des Vercel-Projekts: `web-app`
