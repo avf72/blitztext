@@ -54,6 +54,10 @@ class SettingsActivity : AppCompatActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Links.OPENAI_BILLING)))
         }
 
+        b.btnVocabulary.setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("${BuildConfig.BACKEND_URL}/settings")))
+        }
+
         b.versionText.text =
             "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
         b.btnUpdate.setOnClickListener { checkAndUpdate() }
