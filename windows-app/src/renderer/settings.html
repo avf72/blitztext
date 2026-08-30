@@ -185,6 +185,21 @@
 
     <hr style="margin: 24px 0; border: none; border-top: 1px solid #d4d4d8" />
 
+    <label>Cloud-Konto (Sync mit Web &amp; Android)</label>
+    <div class="hint">
+      Eigennamen, Kontext, Ton, Sprache und Modus mit deinem Blitztext-Konto abgleichen —
+      dasselbe Konto wie in der Android-App/Web.
+    </div>
+    <div class="hint" id="cloudStatus" style="margin-top: 8px"></div>
+    <button id="cloudLogin" type="button" style="background: #ea4335">Mit Google einloggen</button>
+    <div class="row" style="margin-top: 8px">
+      <button id="cloudPull" type="button" style="background: #0369a1; margin-top: 0">Von Cloud laden</button>
+      <button id="cloudPush" type="button" style="background: #16a34a; margin-top: 0">In Cloud speichern</button>
+    </div>
+    <button id="cloudLogout" type="button" style="background: #71717a">Abmelden</button>
+
+    <hr style="margin: 24px 0; border: none; border-top: 1px solid #d4d4d8" />
+
     <label>OpenAI-Konto</label>
     <div class="hint">Guthaben aufladen und Kosten/Nutzung einsehen.</div>
     <button id="billing" type="button" style="background: #16a34a">OpenAI-Guthaben &amp; Kosten</button>
@@ -475,9 +490,60 @@
         }
       });
 
+      // --- Cloud-Sync ---
+      async function refreshCloudStatus() {
+        try {
+          const { loggedIn } = await blitz.cloudStatus();
+          $("cloudStatus").textContent = loggedIn ? "Eingeloggt — Sync verfuegbar." : "Nicht eingeloggt.";
+          $("cloudPull").disabled = !loggedIn;
+          $("cloudPush").disabled = !loggedIn;
+          $("cloudLogout").style.display = loggedIn ? "block" : "none";
+          $("cloudLogin").style.display = loggedIn ? "none" : "block";
+        } catch {
+          $("cloudStatus").textContent = "Cloud-Status nicht verfuegbar.";
+        }
+      }
+
+      $("cloudLogin").addEventListener("click", async () => {
+        $("cloudStatus").textContent = "Browser geoeffnet — nach dem Login bitte hier warten ...";
+        await blitz.cloudLogin();
+        for (let i = 0; i < 30; i++) {
+          await new Promise((r) => setTimeout(r, 2000));
+          const { loggedIn } = await blitz.cloudStatus();
+          if (loggedIn) {
+            await refreshCloudStatus();
+            return;
+          }
+        }
+        $("cloudStatus").textContent = "Kein Login erkannt. Bitte erneut versuchen.";
+      });
+
+      $("cloudPull").addEventListener("click", async () => {
+        $("cloudStatus").textContent = "Lade von Cloud ...";
+        const r = await blitz.cloudPull();
+        if (r.ok) {
+          $("cloudStatus").textContent = "Von Cloud geladen.";
+          load();
+        } else {
+          $("cloudStatus").textContent = "Kein Cloud-Eintrag gefunden.";
+        }
+      });
+
+      $("cloudPush").addEventListener("click", async () => {
+        $("cloudStatus").textContent = "Speichere in Cloud ...";
+        const r = await blitz.cloudPush();
+        $("cloudStatus").textContent = r.ok ? "In Cloud gespeichert." : "Speichern fehlgeschlagen.";
+      });
+
+      $("cloudLogout").addEventListener("click", async () => {
+        await blitz.cloudLogout();
+        refreshCloudStatus();
+      });
+
       logFromSettings("Settings UI geladen, Aufnahmebutton initialisiert");
       load();
       refreshRecordingButton();
+      refreshCloudStatus();
       setInterval(refreshRecordingButton, 1000);
     </script>
   </body>

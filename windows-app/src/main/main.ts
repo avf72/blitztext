@@ -18,6 +18,15 @@ import {
   maskedApiKey,
   type Settings,
 } from "./store";
+import { startCloudLogin, handleCloudCallback, isCloudLoggedIn, cloudLogout } from "./cloudAuth";
+import { pullCloudSettings, pushCloudSettings } from "./cloudSettings";
+
+// Custom-Protocol fuer den Cloud-Login-Callback (siehe cloudAuth.ts).
+app.setAsDefaultProtocolClient("blitztext");
+
+function findCloudCallback(argv: string[]): string | undefined {
+  return argv.find((a) => a.startsWith("blitztext://auth-callback"));
+}
 
 // Nur eine Instanz zulassen. Ein zweiter Start holt die Einstellungen nach vorn.
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -26,11 +35,18 @@ if (!hasSingleInstanceLock) {
 }
 
 if (hasSingleInstanceLock) {
-  app.on("second-instance", () => {
+  app.on("second-instance", (_e, argv) => {
     log("Zweite Instanz gestartet — oeffne bestehende Einstellungen");
+    const callback = findCloudCallback(argv);
+    if (callback) {
+      handleCloudCallback(callback).then((ok) => log(`Cloud-Callback verarbeitet: ${ok}`));
+    }
     openSettings();
   });
 }
+
+// Kaltstart direkt ueber den Protocol-Callback (App war noch nicht offen).
+const initialCloudCallback = findCloudCallback(process.argv);
 
 if (hasSingleInstanceLock) app.whenReady().then(() => {
   log(`App gestartet — Version ${app.getVersion()}`);
@@ -54,6 +70,12 @@ if (hasSingleInstanceLock) app.whenReady().then(() => {
 
   if (process.env.BLITZTEXT_SMOKE) {
     runSmoke(process.env.BLITZTEXT_SMOKE);
+  }
+
+  if (initialCloudCallback) {
+    handleCloudCallback(initialCloudCallback).then((ok) =>
+      log(`Cloud-Callback (Kaltstart) verarbeitet: ${ok}`)
+    );
   }
 });
 
@@ -143,3 +165,29 @@ ipcMain.handle("app:quit", () => {
 });
 ipcMain.handle("update:check", () => checkUpdate());
 ipcMain.handle("update:install", () => downloadAndRunInstaller());
+
+// --- IPC: Cloud-Sync (geteilte Einstellungen mit Web/Android) ---
+ipcMain.handle("cloud:login", () => {
+  startCloudLogin();
+  return true;
+});
+
+ipcMain.handle("cloud:logout", () => {
+  cloudLogout();
+  return true;
+});
+
+ipcMain.handle("cloud:status", () => ({ loggedIn: isCloudLoggedIn() }));
+
+ipcMain.handle("cloud:pull", async () => {
+  const remote = await pullCloudSettings();
+  if (!remote) return { ok: false };
+  const next = saveSettings(remote);
+  rebuildMenu();
+  return { ok: true, settings: next };
+});
+
+ipcMain.handle("cloud:push", async () => {
+  const ok = await pushCloudSettings(getSettings());
+  return { ok };
+});

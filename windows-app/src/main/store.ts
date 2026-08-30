@@ -42,8 +42,16 @@ const DEFAULTS: Settings = {
   transcriptionModel: DEFAULT_TRANSCRIPTION_MODEL,
 };
 
+export interface CloudTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number; // Unix-Sekunden
+  userId: string;
+}
+
 interface StoredFile extends Settings {
   apiKeyEnc?: string; // base64 der verschluesselten Bytes
+  cloudAuthEnc?: string; // base64 der verschluesselten CloudTokens (JSON)
 }
 
 let cache: StoredFile | null = null;
@@ -200,4 +208,33 @@ export function maskedApiKey(): string {
   if (!key) return "";
   if (key.length > 8) return key.slice(0, 4) + " ••••••••";
   return "••••••••";
+}
+
+export function setCloudTokens(tokens: CloudTokens): void {
+  const current = read();
+  const json = JSON.stringify(tokens);
+  current.cloudAuthEnc = safeStorage.isEncryptionAvailable()
+    ? safeStorage.encryptString(json).toString("base64")
+    : Buffer.from(json, "utf-8").toString("base64");
+  write(current);
+}
+
+export function getCloudTokens(): CloudTokens | null {
+  const { cloudAuthEnc } = read();
+  if (!cloudAuthEnc) return null;
+  try {
+    const bytes = Buffer.from(cloudAuthEnc, "base64");
+    const json = safeStorage.isEncryptionAvailable()
+      ? safeStorage.decryptString(bytes)
+      : bytes.toString("utf-8");
+    return JSON.parse(json) as CloudTokens;
+  } catch {
+    return null;
+  }
+}
+
+export function clearCloudTokens(): void {
+  const current = read();
+  delete current.cloudAuthEnc;
+  write(current);
 }

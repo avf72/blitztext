@@ -33,4 +33,11 @@ contextBridge.exposeInMainWorld("blitz", {
   },
   checkUpdate: () => ipcRenderer.invoke("update:check"),
   installUpdate: () => ipcRenderer.invoke("update:install"),
+
+  // Cloud-Sync (geteilte Einstellungen mit Web/Android)
+  cloudLogin: () => ipcRenderer.invoke("cloud:login"),
+  cloudLogout: () => ipcRenderer.invoke("cloud:logout"),
+  cloudStatus: () => ipcRenderer.invoke("cloud:status"),
+  cloudPull: () => ipcRenderer.invoke("cloud:pull"),
+  cloudPush: () => ipcRenderer.invoke("cloud:push"),
 });
