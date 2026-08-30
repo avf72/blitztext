@@ -11,6 +11,7 @@ import {
 } from "@/lib/openai";
 import { applyWorkflow } from "@/lib/workflow";
 import { cleaned, isLikelyArtifact, shouldRejectRecording } from "@/lib/quality";
+import { correctVocabulary } from "@/lib/vocabulary";
 import type { WorkflowType } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -76,13 +77,18 @@ export async function POST(request: Request) {
 
   try {
     const raw = cleaned(
-      await transcribe(file, fileName, language, vocabularyHints, model)
+      correctVocabulary(
+        await transcribe(file, fileName, language, vocabularyHints, model),
+        settings.customTerms
+      )
     );
     if (isLikelyArtifact(raw, durationSec)) {
       return NextResponse.json({ error: NO_RECORDING }, { status: 422 });
     }
 
-    const result = cleaned(await applyWorkflow(workflow, raw, settings));
+    const result = cleaned(
+      correctVocabulary(await applyWorkflow(workflow, raw, settings), settings.customTerms)
+    );
     return NextResponse.json({ text: result, workflow });
   } catch (err) {
     return NextResponse.json(

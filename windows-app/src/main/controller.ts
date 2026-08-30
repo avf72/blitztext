@@ -5,6 +5,7 @@ import { getSettings, hasApiKey, type WorkflowType } from "./store";
 import { transcribe, rewrite } from "./openai";
 import { buildImprovePrompt, DAMPF_ABLASSEN_PROMPT, buildEmojiPrompt } from "./prompts";
 import { cleaned, isLikelyArtifact, shouldRejectRecording } from "./quality";
+import { correctVocabulary } from "./vocabulary";
 import { copyToClipboard, pasteIntoActiveApp } from "./paste";
 import { Notification, shell } from "electron";
 import { OPENAI_BILLING } from "./constants";
@@ -164,7 +165,7 @@ export async function handleAudio(buffer: Buffer, durationSec: number): Promise<
     status("processing", "Wird transkribiert ...");
     const t0 = Date.now();
     log(`Sende Audio an OpenAI (Modell: ${settings.transcriptionModel}) ...`);
-    const raw = cleaned(await transcribe(buffer, settings.language, vocabularyHints, settings.transcriptionModel));
+    const raw = cleaned(correctVocabulary(await transcribe(buffer, settings.language, vocabularyHints, settings.transcriptionModel), settings.customTerms));
     log(`Transkription erhalten nach ${Date.now() - t0}ms: "${raw.slice(0, 60)}"`);
     if (isLikelyArtifact(raw, durationSec)) {
       return fail("Keine Aufnahme erkannt.");
@@ -176,7 +177,7 @@ export async function handleAudio(buffer: Buffer, durationSec: number): Promise<
       return fail("Keine Aufnahme erkannt.");
     }
 
-    await deliver(cleaned(result));
+    await deliver(cleaned(correctVocabulary(result, settings.customTerms)));
     log("Verarbeitung abgeschlossen, Text eingefuegt");
   } catch (err) {
     const m = err instanceof Error ? err.message : "Unbekannter Fehler";

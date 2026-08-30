@@ -7,7 +7,12 @@ export function shouldRejectRecording(durationSec: number): boolean {
 }
 
 export function cleaned(text: string): string {
-  return text.trim();
+  return replaceSharpS(text.trim());
+}
+
+/** Ersetzt ß durch ss (Schweizer Rechtschreibung), unabhaengig vom Workflow. */
+function replaceSharpS(text: string): string {
+  return text.replace(/ß/g, "ss").replace(/ẞ/g, "SS");
 }
 
 /** Erkennt Whisper-Artefakte bei sehr kurzen Aufnahmen. */
